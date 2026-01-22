@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { Bullseye, Spinner } from "@patternfly/react-core";
 
 export const Paths = {
-  pythonWheels: "python-wheels",
+  pythonWheels: "/python-wheels",
 } as const;
 
 export const AppRoutes = () => {
