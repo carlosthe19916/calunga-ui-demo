@@ -169,21 +169,6 @@ Files changed:
 - Filter options now match actual values present in dummy-data.json
 Status: Complete
 
-Feature: Nothing is rendered at https://cryptorodeo.github.io/calunga-ui-demo/
-Files changed:
-- Updated .github/workflows/deploy.yml to fix PUBLIC_PATH from /calunga-ui/ to /calunga-ui-demo/
-- The mismatch between repository name (calunga-ui-demo) and PUBLIC_PATH (/calunga-ui/) was causing assets and routes to fail loading
-- Router basename and assetPrefix now correctly match the actual GitHub Pages URL path
-Status: Complete
-
-Feature: The github page is now deployed, but the masthead does not render properly
-Files changed:
-- Updated client/rsbuild.config.ts to add source.define configuration
-- Added "import.meta.env.PUBLIC_PATH" definition to inject PUBLIC_PATH environment variable into client-side code
-- The PUBLIC_PATH environment variable is now properly accessible via import.meta.env in useBranding.ts and Routes.tsx
-- This fixes the masthead logo path resolution for GitHub Pages deployment
-Status: Complete
-
 Feature: Clicking on the Python Wheels side nav button keeps redirecting with duplicate base paths
 Files changed:
 - Updated client/src/Routes.tsx to change Paths.pythonWheels from "/python-wheels" (absolute) to "python-wheels" (relative)
@@ -207,4 +192,21 @@ Files changed:
 - Changed dest from "branding" to "." to match rhtas-console-ui approach
 - Branding assets now correctly copied and accessible at /branding/images/masthead-logo.svg
 - Masthead logo now renders correctly in both development and production builds
+Status: Complete
+
+Feature: Nothing is rendered at GitHub Pages - EJS template variables not processed
+Files changed:
+- Updated client/vite.config.ts to use index.gh-pages.html as input when GITHUB_PAGES env is set
+- Moved build.rollupOptions configuration to specify input file conditionally (index.gh-pages.html for GitHub Pages, index.html for regular builds)
+- Added rename-gh-pages-html plugin to rename output from index.gh-pages.html to index.html after build when GITHUB_PAGES is set
+- GitHub Pages builds now use static HTML template without EJS variables
+- Title and meta tags now display "Trusted Developer Libraries" instead of <%= branding.application.title %>
+Status: Complete
+Feature: Github page is empty and white
+Files changed:
+- Updated client/index.gh-pages.html to add script tag pointing to entry point: <script type="module" src="/src/index.tsx"></script>
+- Updated client/index.gh-pages.html to use relative path for manifest: href="./manifest.json" instead of href="/manifest.json"
+- The issue was that index.gh-pages.html did not have a script tag to tell Vite where the application entry point was
+- Without the entry point script tag, Vite did not bundle any JavaScript code, resulting in an empty white page
+- Vite now properly bundles the application and injects the correct script and CSS tags with the PUBLIC_PATH base
 Status: Complete

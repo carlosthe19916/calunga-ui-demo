@@ -164,9 +164,10 @@
   },
   {
     "category": "bug-fix",
-    "description": "Nothing is rendered at https://cryptorodeo.github.io/calunga-ui-demo/",
+    "description": "Nothing is rendered at https://cryptorodeo.github.io/calunga-ui-demo/python-wheels",
     "steps": [
       "The github page is now deployed but nothing renders, investigate why and fix the issue.",
+      "The header title is rendered as <%= branding.application.title %> which seems incorrect. This might be a clue."
     ],
     "passes": true
   },
@@ -223,6 +224,14 @@
     "description": "masthead missing after refactoring to vite",
     "steps": [
       "The masthead is missing after moving the app to vite. Investigate why and resolve the issue.",
+    ],
+    "passes": true
+  },
+  {
+    "category": "blocker-bug",
+    "description": "Github page is empty and white",
+    "steps": [
+      "Visting the github page yields an empty white page, no content is rendered: https://cryptorodeo.github.io/calunga-ui-demo/ ",
     ],
     "passes": true
   },
