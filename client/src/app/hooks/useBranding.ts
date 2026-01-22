@@ -30,15 +30,15 @@ const processBrandingStrings = (raw: BrandingStrings): BrandingStrings => {
       ...raw.masthead,
       leftBrand: raw.masthead.leftBrand
         ? {
-            ...raw.masthead.leftBrand,
-            src: replaceTemplateVars(raw.masthead.leftBrand.src),
-          }
+          ...raw.masthead.leftBrand,
+          src: replaceTemplateVars(raw.masthead.leftBrand.src),
+        }
         : undefined,
       rightBrand: raw.masthead.rightBrand
         ? {
-            ...raw.masthead.rightBrand,
-            src: replaceTemplateVars(raw.masthead.rightBrand.src),
-          }
+          ...raw.masthead.rightBrand,
+          src: replaceTemplateVars(raw.masthead.rightBrand.src),
+        }
         : undefined,
     },
   };

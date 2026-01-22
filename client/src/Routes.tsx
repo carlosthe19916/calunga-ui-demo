@@ -4,7 +4,7 @@ import App from "./App";
 import { PythonWheels } from "./pages/python-wheels/python-wheels";
 
 export const Paths = {
-  pythonWheels: "/python-wheels",
+  pythonWheels: "python-wheels",
 } as const;
 
 export const AppRoutes = createBrowserRouter(
