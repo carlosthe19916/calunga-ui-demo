@@ -176,3 +176,13 @@ Files changed:
 - Router basename and assetPrefix now correctly match the actual GitHub Pages URL path
 Status: Complete
 
+Feature: The github page is now deployed, but the masthead does not render properly
+Files changed:
+- Updated client/src/app/hooks/useBranding.ts to process branding strings at runtime
+- Added processBrandingStrings function to replace <%= brandingRoot %> template variables with actual PUBLIC_PATH-based paths
+- The function replaces <%= brandingRoot %> with {PUBLIC_PATH}/branding in all branding image sources (leftBrand, rightBrand, about imageSrc)
+- Uses useMemo to cache the processed branding strings for performance
+- The masthead logo now correctly resolves to /calunga-ui-demo/branding/images/masthead-logo.svg on GitHub Pages
+- This fix ensures the masthead logo and other branding assets load correctly in static GitHub Pages deployments
+Status: Complete
+

@@ -170,4 +170,20 @@
     ],
     "passes": true
   },
+  {
+    "category": "bug-fix",
+    "description": "The github page is now deployed, but the masthead does not render properly",
+    "steps": [
+      "The github page is now deployed but the masthead is not rendering, investigate why and fix the issue.",
+    ],
+    "passes": true
+  },
+  {
+    "category": "bug-fix",
+    "description": "Clicking on the Python Wheels side nav button leads to https://cryptorodeo.github.io/calunga-ui-demo/calunga-ui-demo/calunga-ui-demo/calunga-ui-demo/calunga-ui-demo/calunga-ui-demo/python-wheels?itemsPerPage=10&pageNumber=1&sortColumn=wheel&sortDirection=asc",
+    "steps": [
+      "The github page is now deployed but the side bar nav causes an issue, investigate why and fix the issue.",
+    ],
+    "passes": false
+  },
 ]
