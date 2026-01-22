@@ -186,3 +186,11 @@ Files changed:
 - This fix ensures the masthead logo and other branding assets load correctly in static GitHub Pages deployments
 Status: Complete
 
+Feature: Clicking on the Python Wheels side nav button leads to duplicated URL paths
+Files changed:
+- Updated client/src/Routes.tsx to change child route path from "/python-wheels" (absolute) to "python-wheels" (relative to parent)
+- This fixes the URL duplication issue where clicking navigation links was appending the basename repeatedly
+- Child routes with relative paths work correctly with React Router basename configuration
+- Navigation now correctly resolves to /calunga-ui-demo/python-wheels instead of duplicating the path
+Status: Complete
+

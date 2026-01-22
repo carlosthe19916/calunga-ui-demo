@@ -14,7 +14,7 @@ export const AppRoutes = createBrowserRouter(
       element: <App />,
       children: [
         {
-          path: Paths.pythonWheels,
+          path: "python-wheels",
           element: <PythonWheels />,
         },
       ],
