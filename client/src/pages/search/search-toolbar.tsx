@@ -4,8 +4,6 @@ import {
   ToolbarContent,
   ToolbarItem,
   ToolbarFilter,
-  ToolbarToggleGroup,
-  ToolbarGroup,
   Pagination,
   Select,
   SelectOption,
@@ -15,15 +13,26 @@ import {
   Flex,
   FlexItem,
   Badge,
+  SearchInput,
 } from "@patternfly/react-core";
-import { FilterIcon } from "@patternfly/react-icons";
 import {
   SearchContext,
   type SortOption,
   type FilterValues,
 } from "./search-context";
+import "./search-toolbar.css";
 
-export const SearchToolbar: React.FC = () => {
+interface SearchToolbarProps {
+  searchQuery: string;
+  onSearchChange: (_event: React.FormEvent<HTMLInputElement>, value: string) => void;
+  onSearchClear: () => void;
+}
+
+export const SearchToolbar: React.FC<SearchToolbarProps> = ({ 
+  searchQuery, 
+  onSearchChange, 
+  onSearchClear 
+}) => {
   const {
     sortBy,
     setSortBy,
@@ -39,8 +48,8 @@ export const SearchToolbar: React.FC = () => {
   } = useContext(SearchContext);
 
   const [isSortOpen, setIsSortOpen] = React.useState(false);
-  const [isPythonFilterOpen, setIsPythonFilterOpen] = React.useState(false);
-  const [isArchFilterOpen, setIsArchFilterOpen] = React.useState(false);
+  const [isClassificationFilterOpen, setIsClassificationFilterOpen] = React.useState(false);
+  const [isLicenseFilterOpen, setIsLicenseFilterOpen] = React.useState(false);
 
   const onSortSelect = (
     _event: React.MouseEvent<Element, MouseEvent> | undefined,
@@ -56,28 +65,38 @@ export const SearchToolbar: React.FC = () => {
     { value: "downloads", label: "Downloads" },
   ];
 
-  // Filter options
-  const pythonVersionOptions = [
-    { value: "3.7", label: "Python 3.7" },
-    { value: "3.8", label: "Python 3.8" },
-    { value: "3.9", label: "Python 3.9" },
-    { value: "3.10", label: "Python 3.10" },
-    { value: "3.11", label: "Python 3.11" },
-    { value: "3.12", label: "Python 3.12" },
+  // Filter options based on PyPI classifiers and common categories
+  const classificationOptions = [
+    { value: "web-development", label: "Web Development" },
+    { value: "data-science", label: "Data Science & Analytics" },
+    { value: "machine-learning", label: "Machine Learning & AI" },
+    { value: "cloud-services", label: "Cloud Services" },
+    { value: "database", label: "Database & Storage" },
+    { value: "security", label: "Security & Cryptography" },
+    { value: "networking", label: "Networking & HTTP" },
+    { value: "testing", label: "Testing & Quality Assurance" },
+    { value: "devops", label: "DevOps & Automation" },
+    { value: "scientific", label: "Scientific Computing" },
+    { value: "gui", label: "GUI & Desktop Applications" },
+    { value: "utilities", label: "System Utilities" },
+    { value: "packaging", label: "Packaging & Distribution" },
+    { value: "documentation", label: "Documentation Tools" },
+    { value: "logging", label: "Logging & Monitoring" },
   ];
 
-  const architectureOptions = [
-    { value: "x86_64", label: "x86_64" },
-    { value: "aarch64", label: "ARM64 (aarch64)" },
-    { value: "any", label: "Any" },
-    { value: "universal", label: "Universal" },
+  const licenseOptions = [
+    { value: "MIT", label: "MIT License" },
+    { value: "Apache-2.0", label: "Apache 2.0" },
+    { value: "BSD-3-Clause", label: "BSD 3-Clause" },
+    { value: "GPL-3.0", label: "GPL v3" },
+    { value: "PSF", label: "Python Software Foundation" },
+    { value: "HPND", label: "Historical Permission Notice and Disclaimer" },
+    { value: "ISC", label: "ISC License" },
   ];
 
   const currentSortLabel =
     sortOptions.find((opt) => opt.value === sortBy)?.label || "Relevance";
 
-  const startItem = (page - 1) * perPage + 1;
-  const endItem = Math.min(page * perPage, filteredItemCount);
 
   // Filter handlers
   const onFilterSelect = (
@@ -119,46 +138,56 @@ export const SearchToolbar: React.FC = () => {
       clearFiltersButtonText="Clear all filters"
     >
       <ToolbarContent>
-        <ToolbarToggleGroup toggleIcon={<FilterIcon />} breakpoint="xl">
-          <ToolbarGroup variant="filter-group">
-            {/* Python Version Filter */}
-            <ToolbarFilter
-              labels={filters.pythonVersion}
-              deleteLabel={(_category, chip) =>
-                onDeleteFilterChip("pythonVersion", chip)
-              }
-              deleteLabelGroup={() => onDeleteFilterGroup("pythonVersion")}
-              categoryName="Python Version"
-            >
+        <ToolbarItem style={{ flex: 1, minWidth: 0 }}>
+          <SearchInput
+            placeholder="Search for packages..."
+            value={searchQuery}
+            onChange={onSearchChange}
+            onClear={onSearchClear}
+            aria-label="Search packages"
+            style={{ width: "100%" }}
+          />
+        </ToolbarItem>
+        
+        {/* Classification Filter */}
+        <ToolbarItem>
+          <ToolbarFilter
+            labels={filters.classification}
+            deleteLabel={(_category, chip) =>
+              onDeleteFilterChip("classification", chip)
+            }
+            deleteLabelGroup={() => onDeleteFilterGroup("classification")}
+            categoryName="Classification"
+          >
               <Select
                 role="menu"
-                isOpen={isPythonFilterOpen}
-                selected={filters.pythonVersion}
+                isOpen={isClassificationFilterOpen}
+                selected={filters.classification}
                 onSelect={(event, value) =>
-                  onFilterSelect("pythonVersion", event, value)
+                  onFilterSelect("classification", event, value)
                 }
-                onOpenChange={(isOpen) => setIsPythonFilterOpen(isOpen)}
+                onOpenChange={(isOpen) => setIsClassificationFilterOpen(isOpen)}
                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                   <MenuToggle
                     ref={toggleRef}
-                    onClick={() => setIsPythonFilterOpen(!isPythonFilterOpen)}
-                    isExpanded={isPythonFilterOpen}
-                    style={{ width: "200px" }}
+                    onClick={() => setIsClassificationFilterOpen(!isClassificationFilterOpen)}
+                    isExpanded={isClassificationFilterOpen}
+                    style={{ minWidth: "150px" }}
                   >
-                    Filter by Python version
-                    {filters.pythonVersion.length > 0 && (
-                      <Badge isRead>{filters.pythonVersion.length}</Badge>
+                    Classification
+                    {filters.classification.length > 0 && (
+                      <Badge isRead style={{ marginLeft: "8px" }}>{filters.classification.length}</Badge>
                     )}
                   </MenuToggle>
                 )}
               >
-                <SelectList>
-                  {pythonVersionOptions.map((option) => (
+                <SelectList style={{ maxHeight: "230px", overflowY: "auto" }}>
+                  {classificationOptions.map((option) => (
                     <SelectOption
                       key={option.value}
                       value={option.value}
                       hasCheckbox
-                      isSelected={filters.pythonVersion.includes(option.value)}
+                      isSelected={filters.classification.includes(option.value)}
                     >
                       {option.label}
                     </SelectOption>
@@ -166,45 +195,47 @@ export const SearchToolbar: React.FC = () => {
                 </SelectList>
               </Select>
             </ToolbarFilter>
+        </ToolbarItem>
 
-            {/* Architecture Filter */}
-            <ToolbarFilter
-              labels={filters.architecture}
-              deleteLabel={(_category, chip) =>
-                onDeleteFilterChip("architecture", chip)
-              }
-              deleteLabelGroup={() => onDeleteFilterGroup("architecture")}
-              categoryName="Architecture"
-            >
+        {/* License Filter */}
+        <ToolbarItem>
+          <ToolbarFilter
+            labels={filters.license}
+            deleteLabel={(_category, chip) =>
+              onDeleteFilterChip("license", chip)
+            }
+            deleteLabelGroup={() => onDeleteFilterGroup("license")}
+            categoryName="License"
+          >
               <Select
                 role="menu"
-                isOpen={isArchFilterOpen}
-                selected={filters.architecture}
+                isOpen={isLicenseFilterOpen}
+                selected={filters.license}
                 onSelect={(event, value) =>
-                  onFilterSelect("architecture", event, value)
+                  onFilterSelect("license", event, value)
                 }
-                onOpenChange={(isOpen) => setIsArchFilterOpen(isOpen)}
+                onOpenChange={(isOpen) => setIsLicenseFilterOpen(isOpen)}
                 toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                   <MenuToggle
                     ref={toggleRef}
-                    onClick={() => setIsArchFilterOpen(!isArchFilterOpen)}
-                    isExpanded={isArchFilterOpen}
-                    style={{ width: "200px" }}
+                    onClick={() => setIsLicenseFilterOpen(!isLicenseFilterOpen)}
+                    isExpanded={isLicenseFilterOpen}
+                    style={{ minWidth: "135px" }}
                   >
-                    Filter by architecture
-                    {filters.architecture.length > 0 && (
-                      <Badge isRead>{filters.architecture.length}</Badge>
+                    License
+                    {filters.license.length > 0 && (
+                      <Badge isRead style={{ marginLeft: "8px" }}>{filters.license.length}</Badge>
                     )}
                   </MenuToggle>
                 )}
               >
-                <SelectList>
-                  {architectureOptions.map((option) => (
+                <SelectList style={{ maxHeight: "230px", overflowY: "auto" }}>
+                  {licenseOptions.map((option) => (
                     <SelectOption
                       key={option.value}
                       value={option.value}
                       hasCheckbox
-                      isSelected={filters.architecture.includes(option.value)}
+                      isSelected={filters.license.includes(option.value)}
                     >
                       {option.label}
                     </SelectOption>
@@ -212,8 +243,7 @@ export const SearchToolbar: React.FC = () => {
                 </SelectList>
               </Select>
             </ToolbarFilter>
-          </ToolbarGroup>
-        </ToolbarToggleGroup>
+        </ToolbarItem>
 
         <ToolbarItem variant="separator" />
 
@@ -250,17 +280,6 @@ export const SearchToolbar: React.FC = () => {
           </Flex>
         </ToolbarItem>
 
-        <ToolbarItem variant="separator" />
-
-        <ToolbarItem>
-          {filteredItemCount > 0 ? (
-            <span>
-              Showing {startItem}-{endItem} of {filteredItemCount}
-            </span>
-          ) : (
-            <span>No results</span>
-          )}
-        </ToolbarItem>
 
         <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
           <Pagination

@@ -1,5 +1,5 @@
 import type React from "react";
-import { useContext } from "react";
+import { useContext, useEffect, useLayoutEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   PageSection,
@@ -16,20 +16,30 @@ import {
   GridItem,
   Alert,
 } from "@patternfly/react-core";
-import { ArrowLeftIcon } from "@patternfly/react-icons";
+import { ArrowLeftIcon, CopyIcon, ExclamationTriangleIcon } from "@patternfly/react-icons";
 import {
   PackageDetailProvider,
   PackageDetailContext,
-} from "./package-detail-context";
+} from "./package-detail-context-simple";
 import { OverviewTab } from "./package-detail-tabs/overview-tab";
 import { VersionsTab } from "./package-detail-tabs/versions-tab";
-import { DependentsTab } from "./package-detail-tabs/dependents-tab";
+import { FilesTab } from "./package-detail-tabs/files-tab";
 import { SecurityTab } from "./package-detail-tabs/security-tab";
+import dummyData from "./dummy-data.json";
+import type { Package } from "./search-context";
 import { MetadataSidebar } from "./components/metadata-sidebar";
 
 const PackageDetailContent: React.FC = () => {
   const { packageData, tabControls } = useContext(PackageDetailContext);
   const navigate = useNavigate();
+  const { packageName, version } = useParams<{ packageName: string; version: string }>();
+
+  // Scroll to top when navigating to a package - use useLayoutEffect for immediate scroll
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [packageName, version]);
 
   if (!packageData) {
     return (
@@ -48,7 +58,92 @@ const PackageDetailContent: React.FC = () => {
     );
   }
 
-  const { propHelpers } = tabControls;
+  // Check if there's a newer stable version available
+  const hasNewerVersion = useMemo(() => {
+    const packages: Package[] = dummyData;
+    
+    // Filter to only stable versions (no rc, alpha, beta)
+    const stableVersions = packages
+      .filter((pkg) => pkg.name === packageData.name)
+      .filter((pkg) => !pkg.version.includes('rc') && !pkg.version.includes('alpha') && !pkg.version.includes('beta'))
+      .sort((a, b) => {
+        // Same sorting logic as versions-tab but only for stable versions
+        const parseVersion = (version: string) => {
+          const match = version.match(/^(\d+\.\d+\.\d+)(.*)$/);
+          if (!match) return { base: [0, 0, 0], preRelease: null };
+          
+          const baseParts = match[1].split('.').map(Number);
+          const preReleasePart = match[2];
+          
+          let preRelease = null;
+          if (preReleasePart) {
+            const preMatch = preReleasePart.match(/^(rc|alpha|beta)(\d+)?$/);
+            if (preMatch) {
+              preRelease = {
+                type: preMatch[1],
+                number: preMatch[2] ? parseInt(preMatch[2], 10) : 0
+              };
+            }
+          }
+          
+          return { base: baseParts, preRelease };
+        };
+        
+        const versionA = parseVersion(a.version);
+        const versionB = parseVersion(b.version);
+        
+        // First compare base versions
+        for (let i = 0; i < 3; i++) {
+          if (versionB.base[i] !== versionA.base[i]) {
+            return versionB.base[i] - versionA.base[i];
+          }
+        }
+        
+        return 0;
+      });
+    
+    // Current version is not the latest stable if it's not the first in the sorted stable versions array
+    return stableVersions.length > 0 && stableVersions[0].version !== packageData.version;
+  }, [packageData.name, packageData.version]);
+
+  const { activeKey, setActiveKey } = tabControls;
+
+  const handleNavigateToSecurity = () => {
+    setActiveKey("security");
+  };
+
+  const handleNavigateToAttestations = () => {
+    setActiveKey("security");
+    // Navigate to attestations section
+    setTimeout(() => {
+      const attestationsSection = document.querySelector('[data-section="attestations"]');
+      if (attestationsSection) {
+        attestationsSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const handleNavigateToSbom = () => {
+    setActiveKey("security");
+    // Navigate to SBOM section  
+    setTimeout(() => {
+      const sbomSection = document.querySelector('[data-section="sbom"]');
+      if (sbomSection) {
+        sbomSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const handleNavigateToVulnerabilities = () => {
+    setActiveKey("security");
+    // Navigate to vulnerabilities section
+    setTimeout(() => {
+      const vulnerabilitiesSection = document.querySelector('[data-section="vulnerabilities"]');
+      if (vulnerabilitiesSection) {
+        vulnerabilitiesSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
 
   return (
     <>
@@ -59,97 +154,160 @@ const PackageDetailContent: React.FC = () => {
           onClick={() => navigate("/search")}
           style={{ paddingLeft: 0, marginBottom: "1rem" }}
         >
-          Back to Search
+          Back to Packages
         </Button>
         <Flex
-          direction={{ default: "column" }}
-          spaceItems={{ default: "spaceItemsSm" }}
+          justifyContent={{ default: "justifyContentSpaceBetween" }}
+          alignItems={{ default: "alignItemsCenter" }}
         >
           <FlexItem>
             <Flex
-              alignItems={{ default: "alignItemsCenter" }}
+              direction={{ default: "column" }}
               spaceItems={{ default: "spaceItemsSm" }}
             >
               <FlexItem>
-                <Title headingLevel="h1" size="2xl">
-                  {packageData.name}
-                </Title>
+                <Flex
+                  alignItems={{ default: "alignItemsCenter" }}
+                  spaceItems={{ default: "spaceItemsSm" }}
+                >
+                  <FlexItem>
+                    <Title headingLevel="h1" size="2xl">
+                      {packageData.name}
+                    </Title>
+                  </FlexItem>
+                  <FlexItem>
+                    <Label color="blue" isCompact>
+                      v{packageData.version}
+                    </Label>
+                  </FlexItem>
+                  {hasNewerVersion && (
+                    <FlexItem>
+                      <Label 
+                        color="yellow" 
+                        isCompact 
+                        icon={<ExclamationTriangleIcon style={{ color: "#b77c00" }} />}
+                      >
+                        Newer version available
+                      </Label>
+                    </FlexItem>
+                  )}
+                </Flex>
               </FlexItem>
               <FlexItem>
-                <Label color="blue" isCompact>
-                  v{packageData.version}
-                </Label>
+                <p style={{ fontSize: "var(--pf-v6-global--FontSize--lg)" }}>
+                  {packageData.description}
+                </p>
               </FlexItem>
+              {packageData.tags && packageData.tags.length > 0 && (
+                <FlexItem>
+                  <Flex spaceItems={{ default: "spaceItemsSm" }}>
+                    {packageData.tags.map((tag) => (
+                      <FlexItem key={tag}>
+                        <Label color="grey" isCompact>
+                          #{tag}
+                        </Label>
+                      </FlexItem>
+                    ))}
+                  </Flex>
+                </FlexItem>
+              )}
             </Flex>
           </FlexItem>
           <FlexItem>
-            <p style={{ fontSize: "var(--pf-v6-global--FontSize--lg)" }}>
-              {packageData.description}
-            </p>
+            <Button
+              variant="secondary"
+              icon={<CopyIcon />}
+              onClick={() => {
+                navigator.clipboard.writeText(`pip install ${packageData.name}==${packageData.version}`);
+              }}
+            >
+              pip install {packageData.name}=={packageData.version}
+            </Button>
           </FlexItem>
-          {packageData.tags && packageData.tags.length > 0 && (
-            <FlexItem>
-              <Flex spaceItems={{ default: "spaceItemsSm" }}>
-                {packageData.tags.map((tag) => (
-                  <FlexItem key={tag}>
-                    <Label color="grey" isCompact>
-                      #{tag}
-                    </Label>
-                  </FlexItem>
-                ))}
-              </Flex>
-            </FlexItem>
-          )}
         </Flex>
       </PageSection>
 
       <PageSection>
-        <Tabs {...propHelpers.getTabsProps()} aria-label="Package details tabs">
-          <Tab {...propHelpers.getTabProps("overview")} title="Overview" />
-          <Tab {...propHelpers.getTabProps("versions")} title="Versions" />
-          <Tab {...propHelpers.getTabProps("dependents")} title="Dependents" />
-          <Tab {...propHelpers.getTabProps("security")} title="Security" />
+        <Tabs 
+          activeKey={activeKey === "overview" ? 0 : activeKey === "versions" ? 1 : activeKey === "files" ? 2 : 3}
+          onSelect={(_, tabIndex) => {
+            const keys: TabKey[] = ["overview", "versions", "files", "security"];
+            setActiveKey(keys[tabIndex as number]);
+          }}
+          aria-label="Package details tabs"
+        >
+          <Tab eventKey={0} title="Overview" />
+          <Tab eventKey={1} title="Versions" />
+          <Tab eventKey={2} title="Files" />
+          <Tab eventKey={3} title="Security" />
         </Tabs>
 
-        <Grid hasGutter style={{ marginTop: "1rem" }}>
-          <GridItem span={8} md={8} lg={9}>
-            <TabContent {...propHelpers.getTabContentProps("overview")}>
-              <OverviewTab />
-            </TabContent>
-            <TabContent {...propHelpers.getTabContentProps("versions")}>
-              <VersionsTab />
-            </TabContent>
-            <TabContent {...propHelpers.getTabContentProps("dependents")}>
-              <DependentsTab />
-            </TabContent>
-            <TabContent {...propHelpers.getTabContentProps("security")}>
-              <SecurityTab />
-            </TabContent>
-          </GridItem>
-          <GridItem span={4} md={4} lg={3}>
-            <MetadataSidebar packageData={packageData} />
-          </GridItem>
-        </Grid>
+        <div style={{ marginTop: "1rem" }}>
+          {activeKey === "overview" && (
+            <Grid hasGutter>
+              <GridItem span={8} md={8} lg={9}>
+                <OverviewTab />
+              </GridItem>
+              <GridItem span={4} md={4} lg={3}>
+                <MetadataSidebar 
+                  packageData={packageData} 
+                  onNavigateToSecurity={handleNavigateToSecurity}
+                  onNavigateToAttestations={handleNavigateToAttestations}
+                  onNavigateToSbom={handleNavigateToSbom}
+                  onNavigateToVulnerabilities={handleNavigateToVulnerabilities}
+                />
+              </GridItem>
+            </Grid>
+          )}
+          {activeKey === "versions" && <VersionsTab />}
+          {activeKey === "files" && <FilesTab />}
+          {activeKey === "security" && <SecurityTab />}
+        </div>
       </PageSection>
     </>
   );
 };
 
 export const PackageDetail: React.FC = () => {
-  const { packageId } = useParams<{ packageId: string }>();
+  const { packageName, version } = useParams<{ packageName: string; version: string }>();
 
-  if (!packageId) {
+  // Aggressive scroll to top at the main component level
+  useLayoutEffect(() => {
+    const scrollToTop = () => {
+      // Multiple immediate scroll attempts
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Force scroll on main containers
+      const mainContent = document.querySelector('main');
+      if (mainContent) mainContent.scrollTop = 0;
+      
+      const pageMain = document.querySelector('.pf-v6-c-page__main');
+      if (pageMain) pageMain.scrollTop = 0;
+    };
+    
+    scrollToTop();
+    
+    // Also try on next tick
+    setTimeout(scrollToTop, 0);
+    
+    // And after a brief delay
+    setTimeout(scrollToTop, 50);
+  }, [packageName, version]);
+
+  if (!packageName || !version) {
     return (
       <PageSection>
-        <Alert variant="danger" title="Invalid package ID">
-          <p>No package ID was provided in the URL.</p>
+        <Alert variant="danger" title="Invalid package information">
+          <p>Package name or version was not provided in the URL.</p>
         </Alert>
       </PageSection>
     );
   }
 
   return (
-    <PackageDetailProvider packageId={packageId}>
+    <PackageDetailProvider packageName={packageName} version={version}>
       <PackageDetailContent />
     </PackageDetailProvider>
   );

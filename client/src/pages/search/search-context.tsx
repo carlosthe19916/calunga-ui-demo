@@ -98,8 +98,8 @@ export type SortOption = "relevance" | "date" | "downloads";
 // Filter types
 export interface FilterValues {
   index: string[];
-  pythonVersion: string[];
-  architecture: string[];
+  classification: string[];
+  license: string[];
 }
 
 interface ISearchContext {
@@ -127,10 +127,12 @@ export const SearchContext = createContext<ISearchContext>(contextDefaultValue);
 
 interface ISearchProvider {
   children: React.ReactNode;
+  selectedIndex?: string;
 }
 
 export const SearchProvider: React.FunctionComponent<ISearchProvider> = ({
   children,
+  selectedIndex = "trusted-libraries",
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -151,13 +153,13 @@ export const SearchProvider: React.FunctionComponent<ISearchProvider> = ({
   // Initialize filter state from URL params
   const [filters, setFiltersState] = useState<FilterValues>(() => {
     const indexParam = searchParams.get("index");
-    const pythonParam = searchParams.get("python");
-    const archParam = searchParams.get("arch");
+    const classificationParam = searchParams.get("classification");
+    const licenseParam = searchParams.get("license");
 
     return {
       index: indexParam ? indexParam.split(",") : [],
-      pythonVersion: pythonParam ? pythonParam.split(",") : [],
-      architecture: archParam ? archParam.split(",") : [],
+      classification: classificationParam ? classificationParam.split(",") : [],
+      license: licenseParam ? licenseParam.split(",") : [],
     };
   });
 
@@ -220,8 +222,8 @@ export const SearchProvider: React.FunctionComponent<ISearchProvider> = ({
       // Map category to URL param name
       const paramMap: Record<keyof FilterValues, string> = {
         index: "index",
-        pythonVersion: "python",
-        architecture: "arch",
+        classification: "classification",
+        license: "license",
       };
 
       const paramName = paramMap[category];
@@ -247,8 +249,8 @@ export const SearchProvider: React.FunctionComponent<ISearchProvider> = ({
 
       const paramMap: Record<keyof FilterValues, string> = {
         index: "index",
-        pythonVersion: "python",
-        architecture: "arch",
+        classification: "classification",
+        license: "license",
       };
 
       const paramName = paramMap[category];
@@ -268,20 +270,91 @@ export const SearchProvider: React.FunctionComponent<ISearchProvider> = ({
   const clearAllFilters = useCallback(() => {
     setFiltersState({
       index: [],
-      pythonVersion: [],
-      architecture: [],
+      classification: [],
+      license: [],
     });
     setPageState(1);
     const newParams = new URLSearchParams(searchParams);
     newParams.delete("index");
-    newParams.delete("python");
+    newParams.delete("classification");
     newParams.delete("arch");
     newParams.set("page", "1");
     setSearchParams(newParams);
   }, [searchParams, setSearchParams]);
 
   // Load mock data
-  const packages: Package[] = dummyData;
+  const allPackages: Package[] = dummyData;
+
+  // Filter packages based on selected index and show only latest versions
+  const packages = useMemo(() => {
+    let selectedPackages: Package[];
+    
+    if (selectedIndex === "aipcc") {
+      // Show 6 packages from "page 3" (packages 20-25)
+      selectedPackages = allPackages.slice(20, 26);
+    } else {
+      // For "trusted-libraries" show all packages
+      selectedPackages = allPackages;
+    }
+    
+    // Group packages by name and keep only the latest version
+    const packagesByName = new Map<string, Package>();
+    
+    selectedPackages.forEach((pkg) => {
+      const existingPkg = packagesByName.get(pkg.name);
+      
+      if (!existingPkg) {
+        // First package with this name
+        packagesByName.set(pkg.name, pkg);
+      } else {
+        // Compare versions to keep the latest
+        // Simple version comparison - for more complex versioning, would need semver
+        const currentVersion = pkg.version;
+        const existingVersion = existingPkg.version;
+        
+        // Remove any pre-release suffixes for comparison
+        const normalizeVersion = (version: string) => {
+          return version.replace(/[a-zA-Z].*$/, ''); // Remove rc, alpha, beta, etc.
+        };
+        
+        const currentNormalized = normalizeVersion(currentVersion);
+        const existingNormalized = normalizeVersion(existingVersion);
+        
+        // Split version numbers and compare
+        const currentParts = currentNormalized.split('.').map(Number);
+        const existingParts = existingNormalized.split('.').map(Number);
+        
+        let isNewer = false;
+        for (let i = 0; i < Math.max(currentParts.length, existingParts.length); i++) {
+          const currentPart = currentParts[i] || 0;
+          const existingPart = existingParts[i] || 0;
+          
+          if (currentPart > existingPart) {
+            isNewer = true;
+            break;
+          } else if (currentPart < existingPart) {
+            break;
+          }
+        }
+        
+        // If versions are equal, prefer non-pre-release versions
+        if (!isNewer && currentNormalized === existingNormalized) {
+          const currentHasPreRelease = currentVersion !== currentNormalized;
+          const existingHasPreRelease = existingVersion !== existingNormalized;
+          
+          if (!currentHasPreRelease && existingHasPreRelease) {
+            isNewer = true;
+          }
+        }
+        
+        if (isNewer) {
+          packagesByName.set(pkg.name, pkg);
+        }
+      }
+    });
+    
+    return Array.from(packagesByName.values());
+  }, [selectedIndex]);
 
   // Filter packages based on search query and filters
   const filteredPackages = useMemo(() => {
@@ -305,35 +378,31 @@ export const SearchProvider: React.FunctionComponent<ISearchProvider> = ({
       );
     }
 
-    // Apply python version filter
-    if (filters.pythonVersion.length > 0) {
+    // Apply classification filter
+    if (filters.classification.length > 0) {
       filtered = filtered.filter((pkg) => {
-        if (!pkg.pythonVersion) return false;
-        // Check if package supports any of the selected Python versions
-        return filters.pythonVersion.some((version) => {
-          // Parse version requirement (e.g., ">=3.8" supports 3.8, 3.9, etc.)
-          const versionMatch = pkg.pythonVersion?.match(/>=?(\d+\.\d+)/);
-          if (versionMatch) {
-            const minVersion = parseFloat(versionMatch[1]);
-            const filterVersion = parseFloat(version);
-            return filterVersion >= minVersion;
-          }
-          return pkg.pythonVersion?.includes(version);
-        });
+        if (!pkg.tags) return false;
+        // Check if package has any of the selected classifications/tags
+        return filters.classification.some((classification) =>
+          pkg.tags?.some(tag => 
+            tag.toLowerCase().includes(classification.toLowerCase()) ||
+            classification.toLowerCase().includes(tag.toLowerCase())
+          )
+        );
       });
     }
 
-    // Apply architecture filter
-    if (filters.architecture.length > 0) {
+    // Apply license filter
+    if (filters.license.length > 0) {
       filtered = filtered.filter((pkg) =>
-        pkg.architecture
-          ? filters.architecture.includes(pkg.architecture)
+        pkg.license
+          ? filters.license.includes(pkg.license)
           : false,
       );
     }
 
     return filtered;
-  }, [searchQuery, filters, packages]);
+  }, [searchQuery, filters, packages, selectedIndex]);
 
   // Sort packages based on sortBy
   const sortedPackages = useMemo(() => {

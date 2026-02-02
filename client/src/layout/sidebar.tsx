@@ -21,22 +21,32 @@ export const SidebarApp: React.FC = () => {
         <NavList>
           <li className={nav.navItem}>
             <NavLink
-              to={Paths.pythonWheels}
-              className={({ isActive }) => {
-                return css(LINK_CLASS, isActive ? ACTIVE_LINK_CLASS : "");
-              }}
-            >
-              Python Wheels
-            </NavLink>
-          </li>
-          <li className={nav.navItem}>
-            <NavLink
               to={Paths.search}
               className={({ isActive }) => {
                 return css(LINK_CLASS, isActive ? ACTIVE_LINK_CLASS : "");
               }}
             >
-              Search Packages
+              Python
+            </NavLink>
+          </li>
+          <li className={nav.navItem}>
+            <NavLink
+              to={Paths.maven}
+              className={({ isActive }) => {
+                return css(LINK_CLASS, isActive ? ACTIVE_LINK_CLASS : "");
+              }}
+            >
+              Java (Post-Summit)
+            </NavLink>
+          </li>
+          <li className={nav.navItem}>
+            <NavLink
+              to={Paths.npm}
+              className={({ isActive }) => {
+                return css(LINK_CLASS, isActive ? ACTIVE_LINK_CLASS : "");
+              }}
+            >
+              Javascript (Post-Summit)
             </NavLink>
           </li>
         </NavList>

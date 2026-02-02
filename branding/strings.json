@@ -1,19 +1,19 @@
 {
   "application": {
-    "title": "Trusted Developer Libraries",
+    "title": "Trusted Libraries",
     "name": "Calunga UI",
     "description": "Calunga UI"
   },
   "about": {
-    "displayName": "Trusted Developer Libraries",
-    "imageSrc": "<%= brandingRoot %>/images/masthead-logo.svg",
+    "displayName": "Trusted Libraries",
+    "imageSrc": "<%= brandingRoot %>/images/redhat-logo-20260127.svg",
     "documentationUrl": ""
   },
   "masthead": {
     "leftBrand": {
-      "src": "<%= brandingRoot %>/images/masthead-logo.svg",
-      "alt": "brand",
-      "height": "40px"
+      "src": "<%= brandingRoot %>/images/redhat-logo-20260127.svg?v=17",
+      "alt": "Red Hat - Trusted Libraries",
+      "height": "60px"
     },
     "leftTitle": null,
     "rightBrand": null,

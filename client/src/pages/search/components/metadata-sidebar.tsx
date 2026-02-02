@@ -7,16 +7,28 @@ import {
   DescriptionListTerm,
   DescriptionListDescription,
   Title,
+  Flex,
+  FlexItem,
 } from "@patternfly/react-core";
+import { InfoCircleIcon } from "@patternfly/react-icons";
 import type { Package } from "../search-context";
 import { TrustSidebarCard } from "./trust-sidebar-card";
+import { ClassifiersCard } from "./classifiers-card";
 
 interface IMetadataSidebarProps {
   packageData: Package;
+  onNavigateToSecurity: () => void;
+  onNavigateToAttestations?: () => void;
+  onNavigateToSbom?: () => void;
+  onNavigateToVulnerabilities?: () => void;
 }
 
 export const MetadataSidebar: React.FC<IMetadataSidebarProps> = ({
   packageData,
+  onNavigateToSecurity,
+  onNavigateToAttestations,
+  onNavigateToSbom,
+  onNavigateToVulnerabilities,
 }) => {
   const formatDownloads = (downloads: number): string => {
     if (downloads >= 1000000) {
@@ -32,27 +44,35 @@ export const MetadataSidebar: React.FC<IMetadataSidebarProps> = ({
     <div>
       <Card>
         <CardBody>
+          <Title headingLevel="h4" size="md" style={{ marginBottom: "1rem" }}>
+            <Flex alignItems={{ default: "alignItemsCenter" }} spaceItems={{ default: "spaceItemsSm" }}>
+              <FlexItem>
+                <InfoCircleIcon style={{ color: "var(--pf-v6-global--info-color--100)" }} />
+              </FlexItem>
+              <FlexItem>Package Details</FlexItem>
+            </Flex>
+          </Title>
           <DescriptionList isCompact>
             <DescriptionListGroup>
-              <DescriptionListTerm>📅 Updated</DescriptionListTerm>
+              <DescriptionListTerm>Updated</DescriptionListTerm>
               <DescriptionListDescription>
                 {packageData.updated}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
-              <DescriptionListTerm>📥 Downloads</DescriptionListTerm>
+              <DescriptionListTerm>Downloads</DescriptionListTerm>
               <DescriptionListDescription>
                 {formatDownloads(packageData.downloads)}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
-              <DescriptionListTerm>📄 License</DescriptionListTerm>
+              <DescriptionListTerm>License</DescriptionListTerm>
               <DescriptionListDescription>
                 {packageData.license}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
-              <DescriptionListTerm>👤 Author</DescriptionListTerm>
+              <DescriptionListTerm>Author</DescriptionListTerm>
               <DescriptionListDescription>
                 {packageData.author}
               </DescriptionListDescription>
@@ -63,51 +83,18 @@ export const MetadataSidebar: React.FC<IMetadataSidebarProps> = ({
 
       {(packageData.currentVersionAttestations ||
         packageData.currentVersionSbom ||
-        packageData.trustScore ||
         packageData.slsaLevel) && (
-        <TrustSidebarCard packageData={packageData} />
+        <TrustSidebarCard 
+          packageData={packageData} 
+          onNavigateToSecurity={onNavigateToSecurity}
+          onNavigateToAttestations={onNavigateToAttestations}
+          onNavigateToSbom={onNavigateToSbom}
+          onNavigateToVulnerabilities={onNavigateToVulnerabilities}
+        />
       )}
 
-      {packageData.wheelName && (
-        <Card style={{ marginTop: "1rem" }}>
-          <CardBody>
-            <Title headingLevel="h4" size="md" style={{ marginBottom: "1rem" }}>
-              Wheel Metadata
-            </Title>
-            <DescriptionList isCompact>
-              <DescriptionListGroup>
-                <DescriptionListTerm>🐍 Python Version</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {packageData.pythonVersion}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>⚙️ ABI</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {packageData.abi}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>🖥️ Architecture</DescriptionListTerm>
-                <DescriptionListDescription>
-                  {packageData.architecture}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-              <DescriptionListGroup>
-                <DescriptionListTerm>📦 Wheel File</DescriptionListTerm>
-                <DescriptionListDescription
-                  style={{
-                    fontSize: "var(--pf-v6-global--FontSize--sm)",
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {packageData.wheelName}
-                </DescriptionListDescription>
-              </DescriptionListGroup>
-            </DescriptionList>
-          </CardBody>
-        </Card>
-      )}
+      <ClassifiersCard packageData={packageData} />
+
     </div>
   );
 };

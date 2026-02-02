@@ -1,0 +1,9 @@
+/* Pagination text override to remove bold */
+.pf-v6-c-pagination__page-menu .pf-v6-c-menu-toggle {
+  font-weight: normal !important;
+}
+
+/* Ensure pagination dropdown text is not bold */
+#options-menu-top-toggle {
+  font-weight: normal !important;
+}

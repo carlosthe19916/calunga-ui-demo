@@ -15,6 +15,7 @@ import {
 import BarsIcon from "@patternfly/react-icons/dist/js/icons/bars-icon";
 
 import useBranding from "@app/hooks/useBranding";
+import "./header.css";
 
 export const HeaderApp: React.FC = () => {
   const {
@@ -31,28 +32,19 @@ export const HeaderApp: React.FC = () => {
         </MastheadToggle>
         <MastheadBrand data-codemods>
           <MastheadLogo data-codemods>
-            <Split>
-              <SplitItem>
-                {leftBrand ? (
-                  <Brand
-                    src={leftBrand.src}
-                    alt={leftBrand.alt}
-                    heights={{ default: leftBrand.height }}
-                  />
-                ) : null}
-              </SplitItem>
-              <SplitItem isFilled>
-                {leftTitle ? (
-                  <Title
-                    className="logo-pointer"
-                    headingLevel={leftTitle?.heading ?? "h1"}
-                    size={leftTitle?.size ?? "2xl"}
-                  >
-                    {leftTitle.text}
-                  </Title>
-                ) : null}
-              </SplitItem>
-            </Split>
+            {leftBrand ? (
+              <Brand
+                src={leftBrand.src}
+                alt={leftBrand.alt}
+                heights={{ default: leftBrand.height }}
+                style={{ 
+                  height: "60px", 
+                  width: "auto",
+                  transform: "translateX(0px) scale(1.35)",
+                  transformOrigin: "left top"
+                }}
+              />
+            ) : null}
           </MastheadLogo>
         </MastheadBrand>
       </MastheadMain>

@@ -1,14 +1,12 @@
 import type React from "react";
-import { useContext, useState } from "react";
+import { useContext, useMemo } from "react";
 import {
   PageSection,
   Badge,
   Button,
   Flex,
-  DescriptionList,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  DescriptionListDescription,
+  Label,
+  Title,
 } from "@patternfly/react-core";
 import {
   Table,
@@ -17,51 +15,93 @@ import {
   Th,
   Tbody,
   Td,
-  ExpandableRowContent,
 } from "@patternfly/react-table";
-import { DownloadIcon, EyeIcon } from "@patternfly/react-icons";
-import { PackageDetailContext } from "../package-detail-context";
-import { SBOMViewer } from "../components/sbom-viewer";
-import { AttestationStatusBadge } from "../components/attestation-status-badge";
-import type { SBOM } from "../search-context";
+import { PackageDetailContext } from "../package-detail-context-simple";
+import { useNavigate } from "react-router-dom";
+import dummyData from "../dummy-data.json";
+import type { Package } from "../search-context";
 
 export const VersionsTab: React.FC = () => {
   const { packageData } = useContext(PackageDetailContext);
-  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(
-    new Set(),
-  );
-  const [sbomViewerOpen, setSbomViewerOpen] = useState(false);
-  const [selectedSbom, setSelectedSbom] = useState<SBOM | null>(null);
+  const navigate = useNavigate();
 
-  if (!packageData || !packageData.versions) {
+  // Find all versions of this package
+  const packageVersions = useMemo(() => {
+    if (!packageData) return [];
+    
+    const packages: Package[] = dummyData;
+    const allVersions = packages
+      .filter((pkg) => pkg.name === packageData.name)
+      .sort((a, b) => {
+        // Sort versions in descending order (latest first)
+        // Proper semantic versioning with pre-release handling
+        const parseVersion = (version: string) => {
+          // Split version into base version and pre-release parts
+          const match = version.match(/^(\d+\.\d+\.\d+)(.*)$/);
+          if (!match) return { base: [0, 0, 0], preRelease: null };
+          
+          const baseParts = match[1].split('.').map(Number);
+          const preReleasePart = match[2];
+          
+          let preRelease = null;
+          if (preReleasePart) {
+            // Extract pre-release info (rc, alpha, beta, etc.)
+            const preMatch = preReleasePart.match(/^(rc|alpha|beta)(\d+)?$/);
+            if (preMatch) {
+              preRelease = {
+                type: preMatch[1],
+                number: preMatch[2] ? parseInt(preMatch[2], 10) : 0
+              };
+            }
+          }
+          
+          return { base: baseParts, preRelease };
+        };
+        
+        const versionA = parseVersion(a.version);
+        const versionB = parseVersion(b.version);
+        
+        // First compare base versions
+        for (let i = 0; i < 3; i++) {
+          if (versionB.base[i] !== versionA.base[i]) {
+            return versionB.base[i] - versionA.base[i];
+          }
+        }
+        
+        // Base versions are equal, now handle pre-release
+        // Stable releases (no pre-release) come before pre-releases
+        if (!versionA.preRelease && versionB.preRelease) return -1;
+        if (versionA.preRelease && !versionB.preRelease) return 1;
+        
+        // Both are pre-releases, compare them
+        if (versionA.preRelease && versionB.preRelease) {
+          // Compare pre-release types (stable > rc > beta > alpha)
+          const typeOrder = { 'rc': 3, 'beta': 2, 'alpha': 1 };
+          const aTypeOrder = typeOrder[versionA.preRelease.type as keyof typeof typeOrder] || 0;
+          const bTypeOrder = typeOrder[versionB.preRelease.type as keyof typeof typeOrder] || 0;
+          
+          if (bTypeOrder !== aTypeOrder) {
+            return bTypeOrder - aTypeOrder;
+          }
+          
+          // Same pre-release type, compare numbers
+          return versionB.preRelease.number - versionA.preRelease.number;
+        }
+        
+        // Both are stable releases, they're equal
+        return 0;
+      });
+    
+    return allVersions;
+  }, [packageData]);
+
+  if (!packageData) {
     return (
       <PageSection>
-        <p>No version information available.</p>
+        <p>No package information available.</p>
       </PageSection>
     );
   }
-
-  const toggleExpanded = (version: string) => {
-    setExpandedVersions((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(version)) {
-        newSet.delete(version);
-      } else {
-        newSet.add(version);
-      }
-      return newSet;
-    });
-  };
-
-  const handlePreviewSbom = (sbom: SBOM) => {
-    setSelectedSbom(sbom);
-    setSbomViewerOpen(true);
-  };
-
-  const handleCloseSbomViewer = () => {
-    setSbomViewerOpen(false);
-    setSelectedSbom(null);
-  };
 
   const formatDownloads = (downloads: number): string => {
     if (downloads >= 1000000) {
@@ -73,138 +113,104 @@ export const VersionsTab: React.FC = () => {
     return downloads.toString();
   };
 
+  const handleVersionClick = (version: string) => {
+    window.scrollTo(0, 0);
+    navigate(`/search/${packageData.name}/${version}`);
+  };
+
+  const getStabilityBadge = (version: string) => {
+    if (version.includes('rc')) {
+      return <Label color="yellow" isCompact>Release Candidate</Label>;
+    }
+    if (version.includes('beta')) {
+      return <Label color="purple" isCompact>Beta</Label>;
+    }
+    if (version.includes('alpha')) {
+      return <Label color="red" isCompact>Alpha</Label>;
+    }
+    if (version.includes('dev')) {
+      return <Label color="grey" isCompact>Development</Label>;
+    }
+    return <Label color="green" isCompact>Stable</Label>;
+  };
+
+  const getPythonVersionSupport = (packageVersion: any) => {
+    // Extract from the package data, or use a sensible default based on version
+    if (packageVersion.pythonVersion) {
+      return packageVersion.pythonVersion;
+    }
+    
+    // Fallback logic based on version patterns
+    const version = packageVersion.version;
+    if (version.startsWith('3.0')) return '>=3.11';
+    if (version.startsWith('2.')) return '>=3.9';
+    if (version.startsWith('1.4')) return '>=3.8';
+    return '>=3.8'; // default
+  };
+
   return (
     <PageSection>
-      <Table aria-label="Versions table" variant="compact">
+      <Title headingLevel="h2" size="xl">
+        Versions
+      </Title>
+      <p style={{ marginTop: "0.5rem" }}>
+        All available versions of this package, including stable releases and pre-releases.
+      </p>
+      <Table aria-label="Versions table" variant="compact" style={{ marginTop: "1.5rem" }}>
         <Thead>
           <Tr>
-            <Th />
             <Th>Version</Th>
+            <Th>Release Type</Th>
+            <Th>Python Support</Th>
             <Th>Release Date</Th>
             <Th>Downloads</Th>
-            <Th>SBOM</Th>
-            <Th>Attestations</Th>
           </Tr>
         </Thead>
-        {packageData.versions.map((ver, idx) => {
-          const isExpanded = expandedVersions.has(ver.version);
-          return (
-            <Tbody key={ver.version} isExpanded={isExpanded}>
-              <Tr>
-                <Td
-                  expand={{
-                    rowIndex: idx,
-                    isExpanded,
-                    onToggle: () => toggleExpanded(ver.version),
-                  }}
-                />
+        <Tbody>
+          {packageVersions.map((version) => {
+            const isCurrentVersion = version.version === packageData.version;
+            return (
+              <Tr key={version.version}>
                 <Td dataLabel="Version">
-                  <strong>{ver.version}</strong>
-                </Td>
-                <Td dataLabel="Release Date">{ver.releaseDate}</Td>
-                <Td dataLabel="Downloads">{formatDownloads(ver.downloads)}</Td>
-                <Td dataLabel="SBOM">
-                  {ver.sbom ? (
-                    <Flex spaceItems={{ default: "spaceItemsSm" }}>
-                      <Badge isRead>
-                        {ver.sbom.format}{" "}
-                        {ver.sbom.version && `v${ver.sbom.version}`}
-                      </Badge>
-                      <Button
-                        variant="link"
-                        isSmall
-                        icon={<EyeIcon />}
-                        onClick={() => ver.sbom && handlePreviewSbom(ver.sbom)}
-                      >
-                        Preview
-                      </Button>
-                      <Button
-                        variant="link"
-                        isSmall
-                        icon={<DownloadIcon />}
-                        component="a"
-                        href={ver.sbom.url}
-                        download
-                      >
-                        Download
-                      </Button>
-                    </Flex>
-                  ) : (
-                    <span style={{ color: "var(--pf-v6-global--Color--200)" }}>
-                      N/A
-                    </span>
-                  )}
-                </Td>
-                <Td dataLabel="Attestations">
-                  {ver.attestations && ver.attestations.length > 0 ? (
-                    <Badge>{ver.attestations.length}</Badge>
-                  ) : (
-                    <span style={{ color: "var(--pf-v6-global--Color--200)" }}>
-                      None
-                    </span>
-                  )}
-                </Td>
-              </Tr>
-              <Tr isExpanded={isExpanded}>
-                <Td />
-                <Td colSpan={5}>
-                  <ExpandableRowContent>
-                    {ver.sbom && (
-                      <div style={{ marginBottom: "1rem" }}>
-                        <strong>SBOM Details:</strong>
-                        <DescriptionList isCompact isHorizontal>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Format</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {ver.sbom.format}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>URL</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              <a href={ver.sbom.url}>{ver.sbom.url}</a>
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>
-                              Generated At
-                            </DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {new Date(ver.sbom.generatedAt).toLocaleString()}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                        </DescriptionList>
-                      </div>
+                  <Flex alignItems={{ default: "alignItemsCenter" }} spaceItems={{ default: "spaceItemsSm" }}>
+                    <Button
+                      variant="link"
+                      isInline
+                      onClick={() => handleVersionClick(version.version)}
+                      style={{
+                        fontWeight: isCurrentVersion ? "bold" : "normal",
+                        color: isCurrentVersion ? "var(--pf-v6-global--primary-color--100)" : undefined,
+                      }}
+                    >
+                      {version.version}
+                    </Button>
+                    {isCurrentVersion && (
+                      <Badge variant="outline" color="blue">This version</Badge>
                     )}
-                    {ver.attestations && ver.attestations.length > 0 && (
-                      <div>
-                        <strong>Attestations:</strong>
-                        <Flex
-                          spaceItems={{ default: "spaceItemsSm" }}
-                          style={{ marginTop: "0.5rem" }}
-                        >
-                          {ver.attestations.map((att) => (
-                            <AttestationStatusBadge
-                              key={`${att.type}-${att.verifier}-${att.timestamp}`}
-                              attestation={att}
-                              showVerifier={true}
-                              isCompact={true}
-                            />
-                          ))}
-                        </Flex>
-                      </div>
-                    )}
-                  </ExpandableRowContent>
+                  </Flex>
                 </Td>
+                <Td dataLabel="Release Type">
+                  {getStabilityBadge(version.version)}
+                </Td>
+                <Td dataLabel="Python Support" style={{ minWidth: "120px" }}>
+                  <code style={{ 
+                    backgroundColor: "var(--pf-v6-global--BackgroundColor--200)", 
+                    padding: "2px 6px", 
+                    borderRadius: "4px",
+                    fontSize: "var(--pf-v6-global--FontSize--sm)",
+                    fontFamily: "var(--pf-v6-global--FontFamily--monospace)",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {getPythonVersionSupport(version)}
+                  </code>
+                </Td>
+                <Td dataLabel="Release Date">{version.updated}</Td>
+                <Td dataLabel="Downloads">{formatDownloads(version.downloads)}</Td>
               </Tr>
-            </Tbody>
-          );
-        })}
+            );
+          })}
+        </Tbody>
       </Table>
-
-      {sbomViewerOpen && selectedSbom && (
-        <SBOMViewer sbom={selectedSbom} onClose={handleCloseSbomViewer} />
-      )}
     </PageSection>
   );
 };
